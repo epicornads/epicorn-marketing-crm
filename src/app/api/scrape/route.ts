@@ -545,8 +545,8 @@ export async function POST(request: Request) {
         logoUrl = brandData.logoUrl;
       }
     }
-    // If Cloudinary is not configured or failed to upload, wrap with local proxy endpoint
-    if (logoUrl && !logoUrl.includes('cloudinary.com')) {
+    // If Cloudinary is not configured or failed to upload, wrap with local proxy endpoint (unless it is Unsplash/Cloudinary already)
+    if (logoUrl && !logoUrl.includes('cloudinary.com') && !logoUrl.includes('unsplash.com')) {
       logoUrl = `/api/proxy-image?url=${encodeURIComponent(logoUrl)}`;
     }
 
@@ -556,12 +556,12 @@ export async function POST(request: Request) {
       try {
         const absoluteImg = new URL(img, resolvedUrl).href;
         let uploaded = await uploadToCloudinary(absoluteImg, 'epicorn/assets');
-        if (uploaded && !uploaded.includes('cloudinary.com')) {
+        if (uploaded && !uploaded.includes('cloudinary.com') && !uploaded.includes('unsplash.com')) {
           uploaded = `/api/proxy-image?url=${encodeURIComponent(uploaded)}`;
         }
         resolvedImages.push(uploaded);
       } catch (e) {
-        resolvedImages.push(`/api/proxy-image?url=${encodeURIComponent(img)}`);
+        resolvedImages.push(img.includes('unsplash.com') || img.includes('cloudinary.com') ? img : `/api/proxy-image?url=${encodeURIComponent(img)}`);
       }
     }
 
@@ -605,7 +605,7 @@ export async function POST(request: Request) {
       ];
     }
 
-    const stockBackupProxied = categoryStock.map(img => `/api/proxy-image?url=${encodeURIComponent(img)}`);
+    const stockBackupProxied = categoryStock; // Unsplash supports CORS natively, do not proxy!
 
     while (resolvedImages.length < 4) {
       resolvedImages.push(stockBackupProxied[resolvedImages.length % stockBackupProxied.length]);
@@ -679,7 +679,7 @@ function generateFallbackBrand(url: string, brandName: string) {
   const isCoffee = url.includes('coffee') || url.includes('cup') || url.includes('brew') || url.includes('cafe') || url.includes('espresso');
   const isWoodworking = url.includes('wood') || url.includes('carpenter') || url.includes('craft') || url.includes('tedswoodworking');
   
-  const getProxied = (u: string) => `/api/proxy-image?url=${encodeURIComponent(u)}`;
+  const getProxied = (u: string) => u; // Direct loading from Unsplash CDN is safer & faster (CORS enabled)
 
   if (isSkincare) {
     return {
@@ -779,9 +779,9 @@ function generateFallbackBrand(url: string, brandName: string) {
     fonts: { headline: 'Manrope', body: 'Hanken Grotesk' },
     tone: 'Professional, innovative, and growth-focused',
     offers: [
-      `Save 30% on all plans for ${brandName} today!`,
-      'Start your 14-day free trial, no card required',
-      `Upgrade your workflow with ${brandName} premium`
+      `Exclusive deals and campaign launches at ${brandName}!`,
+      `Get free delivery on orders from ${brandName}`,
+      `Premium quality guaranteed - shop our collections`
     ],
     testimonials: [{ quote: 'Outstanding results and support from the entire team.', author: 'John D.', rating: 5 }],
     images: [
