@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { chromium } from 'playwright';
 import { uploadToCloudinary } from '@/utils/cloudinary';
 
 export async function POST(request: Request) {
@@ -116,6 +115,7 @@ export async function POST(request: Request) {
     if (!brandData) {
       try {
         console.log('Attempting scrape via local Playwright for:', targetUrl);
+        const { chromium } = await import('playwright');
         const browser = await chromium.launch({
           headless: true
         });
